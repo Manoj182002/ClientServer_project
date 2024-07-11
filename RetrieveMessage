@@ -1,0 +1,37 @@
+import java.util.concurrent.BlockingQueue;
+
+public class RetrieveMessage {
+
+    private String clientId;
+
+    public RetrieveMessage(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public void retrieveMessages() {
+        if (MessageSystem.getInstance().isClientOnline(clientId)) {
+            new Thread(new ReceiveThread()).start();
+        } else {
+            System.out.println(clientId + " is offline. Messages will be delivered when the client comes online.");
+        }
+    }
+
+    class ReceiveThread implements Runnable {
+
+        @Override
+        public void run() {
+            BlockingQueue<String> queue = MessageSystem.getInstance().getMessageQueue(clientId);
+            if (queue != null) {
+                while (!queue.isEmpty()) {
+                    try {
+                        System.out.println(clientId + " received: " + queue.take());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        System.out.println("Thread was interrupted while waiting: " + e.getMessage());
+                    }
+                    
+                }
+            }
+        }
+    }
+}
