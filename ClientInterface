@@ -1,0 +1,52 @@
+package networking;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
+import java.util.Scanner;
+
+
+class Client {
+    private Socket socket;
+
+    Client() throws IOException {
+        socket = new Socket("localhost", 8000);
+    }
+
+    void sendData(String username) throws IOException {
+        OutputStream outputStream = socket.getOutputStream();
+        outputStream.write(username.getBytes());
+        //OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream());
+        //writer.write(username);
+    }
+
+    String receiveData() throws IOException {
+        InputStream inputStream = socket.getInputStream();
+        byte[] responseBytes = new byte[1024];
+        inputStream.read(responseBytes);
+        return new String(responseBytes);
+    }
+
+    void closeConnection() throws IOException {
+        socket.close();
+    }
+}
+
+public class ClientMain {
+	public static void main(String[] args) {
+        try {
+            Client client = new Client();
+            Scanner sc = new Scanner(System.in);
+            System.out.print("Enter username: ");
+            String username = sc.nextLine();
+            client.sendData(username);
+            String response = client.receiveData();
+            System.out.println("Server response: " + response);
+            client.closeConnection();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
