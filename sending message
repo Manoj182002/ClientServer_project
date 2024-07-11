@@ -1,0 +1,42 @@
+package Send;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.Scanner;
+
+public class  Sending{
+
+    private String clientId;
+    private String host;
+    private int port;
+
+    public Sending(String clientId, String host, int port) {
+        this.clientId = clientId;
+        this.host = host;
+        this.port = port;
+    }
+
+    public void sendMessage() {
+        try {
+            Socket socket = new Socket(host, port);
+            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            Scanner scanner = new Scanner(System.in);
+
+            while (true) {
+                System.out.print("Enter message: ");
+                String message = scanner.nextLine();
+                writer.println(clientId + ": " + message);
+            }
+        } catch (Exception e) {
+            System.out.println("Error sending message: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        String clientId = "John";
+        String host = "localhost";
+        int port = 8080;
+
+        SendMessage sendMessage = new SendMessage(clientId, host, port);
+        sendMessage.sendMessage();
+    }
+}
