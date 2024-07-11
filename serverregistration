@@ -1,0 +1,93 @@
+package com.example.my_app;
+
+/**
+ * Hello world!
+ *
+ */
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
+import com.google.gson.Gson;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.nio.charset.StandardCharsets;
+
+public class App {
+    private static final int PORT = 8000;
+    private static Map<String, String> registeredUsers = new HashMap<>();
+
+    public static void main(String[] args) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+        server.createContext("/check_user", new CheckUserHandler());
+        server.createContext("/register", new RegisterUserHandler());
+        server.setExecutor(null);
+        server.start();
+        System.out.println("Server started on port " + PORT);
+    }
+
+    static class CheckUserHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("POST".equals(exchange.getRequestMethod())) {
+                Gson gson = new Gson();
+                Map<String, String> responseMap = new HashMap<>();
+                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                Map<String, String> requestMap = gson.fromJson(requestBody, Map.class);
+                String username = requestMap.get("username");
+
+                if (username == null || username.isEmpty()) {
+                    responseMap.put("error", "Username is required");
+                    sendResponse(exchange, gson.toJson(responseMap), 400);
+                } else if (registeredUsers.containsKey(username)) {
+                    responseMap.put("message", "User is already registered");
+                    sendResponse(exchange, gson.toJson(responseMap), 200);
+                } else {
+                    responseMap.put("message", "User not registered");
+                    sendResponse(exchange, gson.toJson(responseMap), 404);
+                }
+            } else {
+                sendResponse(exchange, "{\"error\": \"Invalid request method\"}", 405);
+            }
+        }
+    }
+
+    static class RegisterUserHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("POST".equals(exchange.getRequestMethod())) {
+                Gson gson = new Gson();
+                Map<String, String> responseMap = new HashMap<>();
+                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                Map<String, String> requestMap = gson.fromJson(requestBody, Map.class);
+                String username = requestMap.get("username");
+                String details = requestMap.get("details");
+
+                if (username == null || username.isEmpty() || details == null || details.isEmpty()) {
+                    responseMap.put("error", "Username and details are required");
+                    sendResponse(exchange, gson.toJson(responseMap), 400);
+                } else if (registeredUsers.containsKey(username)) {
+                    responseMap.put("message", "User already registered");
+                    sendResponse(exchange, gson.toJson(responseMap), 200);
+                } else {
+                    registeredUsers.put(username, details);
+                    responseMap.put("message", "User registered successfully");
+                    sendResponse(exchange, gson.toJson(responseMap), 201);
+                }
+            } else {
+                sendResponse(exchange, "{\"error\": \"Invalid request method\"}", 405);
+            }
+        }
+    }
+
+    private static void sendResponse(HttpExchange exchange, String response, int statusCode) throws IOException {
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+        exchange.sendResponseHeaders(statusCode, response.getBytes(StandardCharsets.UTF_8).length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes(StandardCharsets.UTF_8));
+        os.close();
+    }
+}
